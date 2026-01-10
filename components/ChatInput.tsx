@@ -68,7 +68,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
     }
   }, []);
 
-  // Handle Autocomplete Logic
   useEffect(() => {
     if (activeMode === ChatMode.FIND_CARE && input.trim()) {
         const lowerInput = input.toLowerCase();
@@ -111,15 +110,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
       const files: File[] = Array.from(e.target.files);
 
       for (const file of files) {
-        // Basic validation
-        if (file.size > 20 * 1024 * 1024) { // 20MB limit
+        if (file.size > 20 * 1024 * 1024) {
            alert(`File ${file.name} is too large (max 20MB)`);
            continue;
         }
-
         const isVideo = file.type.startsWith('video/');
         const isImage = file.type.startsWith('image/');
-        
         if (!isVideo && !isImage) continue;
 
         try {
@@ -127,13 +123,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
                 const reader = new FileReader();
                 reader.onload = () => {
                     const result = reader.result as string;
-                    // Extract base64 part
                     resolve(result.split(',')[1]); 
                 };
                 reader.onerror = reject;
                 reader.readAsDataURL(file);
             });
-
             newAttachments.push({
                 type: isVideo ? 'video' : 'image',
                 url: URL.createObjectURL(file),
@@ -145,7 +139,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
         }
       }
       setAttachments(prev => [...prev, ...newAttachments]);
-      // Reset input so same file can be selected again if needed
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -160,7 +153,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
       if (activeMode === ChatMode.CONSULTATION && duration.trim()) {
           finalMessage += `\n\n[Patient Context - Symptom Duration: ${duration}]`;
       }
-      
       onSendMessage(finalMessage, attachments);
       setInput('');
       setDuration('');
@@ -196,8 +188,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
   return (
     <div className="bg-white border-t border-slate-200 p-4 pb-6 relative z-30">
       <div className="max-w-4xl mx-auto">
-        
-        {/* Chips */}
         {activeMode === ChatMode.FIND_CARE && !input.trim() && !attachments.length && (
             <div className="flex gap-2 mb-3 overflow-x-auto pb-1 scrollbar-hide">
                 {CARE_CHIPS.slice(0, 5).map(chip => (
@@ -212,7 +202,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
             </div>
         )}
 
-        {/* Autocomplete */}
         {showSuggestions && (
             <div className="absolute bottom-[calc(100%-10px)] left-0 w-full px-4 mb-2 pointer-events-none">
                 <div className="max-w-4xl mx-auto pointer-events-auto">
@@ -233,7 +222,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
             </div>
         )}
 
-        {/* Attachment Previews */}
         {attachments.length > 0 && (
             <div className="flex gap-3 mb-3 overflow-x-auto pb-2">
                 {attachments.map((att, idx) => (
@@ -257,10 +245,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
         )}
 
         <div className="flex flex-col gap-3">
-            {/* Main Input Row */}
             <div className="flex items-center gap-3">
-                
-                {/* File Upload Button */}
                 <input 
                     type="file" 
                     ref={fileInputRef}
@@ -334,7 +319,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
                 </button>
             </div>
 
-            {/* Symptom Duration (Consultation Only) */}
             {activeMode === ChatMode.CONSULTATION && (
                  <div className="relative animate-in slide-in-from-top-2 duration-300">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
@@ -357,7 +341,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
            Dr. AI is an AI. In emergencies, call 911 immediately.
         </p>
         <p className="text-[10px] text-slate-300 uppercase tracking-widest font-semibold">
-            Created by AI Master
+            Developed by Muhammad Aneeq Ur Rehman
         </p>
       </div>
     </div>
