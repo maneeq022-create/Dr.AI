@@ -1,0 +1,8 @@
+{
+  "name": "Dr. AI - AI Medical Assistant",
+  "description": "An advanced AI-powered medical assistant that provides health consultations, finds nearby medical services, and researches the latest medical information.",
+  "requestFramePermissions": [
+    "geolocation",
+    "microphone"
+  ]
+}
