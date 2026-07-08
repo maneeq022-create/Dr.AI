@@ -8,20 +8,14 @@ import { DisclaimerModal } from './components/DisclaimerModal';
 import { LoginPage } from './components/LoginPage';
 import { generateResponse, generateTTS, generateMedicalImaging, generateMedicalVideo } from './services/geminiService';
 import { auth, db, logout, syncUserProfile } from './services/firebase';
-import { ChatMode, Message, UserLocation, Attachment } from './types';
-import { Activity, Trash2, Download, CheckCircle, Cloud, LogOut, User as UserIcon, ShieldAlert, Heart, Mic, MicOff, Volume2 } from 'lucide-react';
+import { ChatMode, Message, UserLocation, Attachment, AuthUser } from './types';
+import { Activity, Trash2, Download, CheckCircle, Cloud, LogOut, User as UserIcon, ShieldAlert, Heart, Mic, MicOff, Volume2, Moon, Sun, Type, Lock } from 'lucide-react';
 import { HealthTrackerSuite } from './components/HealthTrackerSuite';
 import { PatientForm } from './components/PatientForm';
 import { EMERGENCY_KEYWORDS } from './constants';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
-
-interface AuthUser {
-  uid: string;
-  name: string;
-  email: string;
-  photo?: string;
-}
+import { PricingModal } from './components/PricingModal';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -38,7 +32,16 @@ const App: React.FC = () => {
   const [isEmergencyDetected, setIsEmergencyDetected] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [age, setAge] = useState<string>('');
-  
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
+  });
+  const [textSize, setTextSize] = useState<'sm' | 'base' | 'lg'>(() => {
+    return (localStorage.getItem('textSize') as 'sm' | 'base' | 'lg') || 'base';
+  });
+  const [showPricingModal, setShowPricingModal] = useState(false);
+
+  const isPro = user?.subscriptionStatus === 'premium' || user?.subscriptionStatus === 'trial';
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
@@ -68,6 +71,10 @@ const App: React.FC = () => {
   }, []);
 
   const toggleListening = () => {
+    if (!isPro) {
+      setShowPricingModal(true);
+      return;
+    }
     if (isListening) {
       recognitionRef.current?.stop();
     } else {
@@ -77,37 +84,57 @@ const App: React.FC = () => {
   };
 
   const speak = async (text: string) => {
-    // Attempt high-quality Gemini TTS first
-    const ttsUrl = await generateTTS(text);
-    if (ttsUrl) {
-      const audio = new Audio(ttsUrl);
-      audio.play();
-    } else {
-      // Fallback to browser TTS
-      const utterance = new SpeechSynthesisUtterance(text);
-      window.speechSynthesis.speak(utterance);
+    if (isPro) {
+      // Attempt high-quality Gemini TTS first for PRO users
+      const ttsUrl = await generateTTS(text);
+      if (ttsUrl) {
+        const audio = new Audio(ttsUrl);
+        audio.play();
+        return;
+      }
     }
+    
+    // Fallback to browser TTS for free users or if TTS fails
+    const utterance = new SpeechSynthesisUtterance(text);
+    window.speechSynthesis.speak(utterance);
   };
 
   // Auth & Firestore Initialization
   useEffect(() => {
+    let unsubscribeUserDoc: (() => void) | undefined;
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const userData = {
-          uid: firebaseUser.uid,
-          name: firebaseUser.displayName || 'User',
-          email: firebaseUser.email || '',
-          photo: firebaseUser.photoURL || undefined
-        };
-        setUser(userData);
         await syncUserProfile(firebaseUser);
+        
+        // Listen to user document for subscription updates
+        const userDocRef = doc(db, 'users', firebaseUser.uid);
+        unsubscribeUserDoc = onSnapshot(userDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                setUser({
+                    uid: firebaseUser.uid,
+                    name: firebaseUser.displayName || 'User',
+                    email: firebaseUser.email || '',
+                    photo: firebaseUser.photoURL || undefined,
+                    subscriptionStatus: data.subscriptionStatus || 'free',
+                    trialEndsAt: data.trialEndsAt ? data.trialEndsAt.toDate() : null
+                });
+            }
+        });
       } else {
+        if (unsubscribeUserDoc) {
+            unsubscribeUserDoc();
+            unsubscribeUserDoc = undefined;
+        }
         setUser(null);
         setMessages([]);
       }
     });
 
-    return () => unsubscribeAuth();
+    return () => {
+        unsubscribeAuth();
+        if (unsubscribeUserDoc) unsubscribeUserDoc();
+    };
   }, []);
 
   // Message History Real-time Sync
@@ -148,27 +175,46 @@ const App: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem('theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('textSize', textSize);
+  }, [textSize]);
+
   const handleLogin = (userData: AuthUser) => {
     setUser(userData);
   };
 
   const handleLogout = async () => {
-    if (window.confirm("Are you sure you want to log out? Your current session history is saved in the cloud.")) {
+    try {
       await logout();
+    } catch (e) {
+      console.error("Logout failed", e);
+      // Fallback
+      window.location.reload();
     }
   };
 
   const handleClearHistory = async () => {
     if (!user || messages.length === 0) return;
-    if (window.confirm("Clear all your medical consultation history? This cannot be undone.")) {
-      const messagesRef = collection(db, 'users', user.uid, 'messages');
-      const snapshot = await getDocs(messagesRef);
-      const deletePromises = snapshot.docs.map(d => deleteDoc(doc(db, 'users', user.uid, 'messages', d.id)));
-      await Promise.all(deletePromises);
-    }
+    const messagesRef = collection(db, 'users', user.uid, 'messages');
+    const snapshot = await getDocs(messagesRef);
+    const deletePromises = snapshot.docs.map(d => deleteDoc(doc(db, 'users', user.uid, 'messages', d.id)));
+    await Promise.all(deletePromises);
   };
 
   const handleSaveLocal = () => {
+    if (!isPro) {
+      setShowPricingModal(true);
+      return;
+    }
     if (messages.length === 0) return;
     const chatData = JSON.stringify(messages, null, 2);
     const blob = new Blob([chatData], { type: 'application/json' });
@@ -198,10 +244,14 @@ Please provide a detailed medical analysis based on this information.`;
   };
 
   const handleDownloadReport = () => {
+    if (!isPro) {
+      setShowPricingModal(true);
+      return;
+    }
     if (messages.length === 0) return;
     
-    const patientName = prompt("Enter Patient Name:") || "Anonymous";
-    const patientAge = prompt("Enter Patient Age:") || "N/A";
+    const patientName = user?.name || "Anonymous";
+    const patientAge = "Not Provided (See Intakes)";
     
     // @ts-ignore
     const doc = new jsPDF();
@@ -271,6 +321,12 @@ Please provide a detailed medical analysis based on this information.`;
 
   const handleSendMessage = async (text: string, attachments: Attachment[] = []) => {
     if (!user) return;
+    
+    // Check Free tier limit
+    if (!isPro && messages.length >= 6) {
+      setShowPricingModal(true);
+      return;
+    }
 
     let finalPrompt = text;
     if (isEli5) {
@@ -310,12 +366,23 @@ Please provide a detailed medical analysis based on this information.`;
 
       // Special handling for image/video generation requests (Imagen/Veo)
       if (text.toLowerCase().startsWith('/image ') || text.toLowerCase().startsWith('/video ')) {
+         if (!isPro) {
+            setShowPricingModal(true);
+            setIsLoading(false);
+            return;
+         }
+         
          const hasKey = await (window as any).aistudio?.hasSelectedApiKey();
          if (!hasKey) {
-            if (window.confirm("High-quality media generation requires a personal Google Cloud API key (Imagen/Veo). Would you like to select your key now?")) {
-               await (window as any).aistudio?.openSelectKey();
-               return; // User should retry after key selection
-            }
+            await (window as any).aistudio?.openSelectKey();
+            // Automatically add a system message instructing them to retry
+            await addDoc(messagesRef, {
+                role: 'model',
+                text: "Please provide a Google Cloud API key to enable high-quality media generation (Imagen/Veo), then try your request again.",
+                timestamp: serverTimestamp(),
+                mode: currentMode
+            });
+            return;
          }
          
          if (text.toLowerCase().startsWith('/image ')) {
@@ -366,8 +433,10 @@ Please provide a detailed medical analysis based on this information.`;
   }
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 relative">
+    <div className={`flex flex-col h-full bg-slate-50 dark:bg-slate-900 relative transition-colors duration-300 ${textSize === 'sm' ? 'text-sm' : textSize === 'lg' ? 'text-lg' : 'text-base'}`}>
       {!hasAcceptedDisclaimer && <DisclaimerModal onAccept={() => setHasAcceptedDisclaimer(true)} />}
+      
+      {showPricingModal && user && <PricingModal onClose={() => setShowPricingModal(false)} userId={user.uid} />}
       
       {showDashboard && <HealthTrackerSuite onClose={() => setShowDashboard(false)} />}
       {showPatientForm && <PatientForm onClose={() => setShowPatientForm(false)} onSubmit={handleFormSubmit} />}
@@ -390,78 +459,109 @@ Please provide a detailed medical analysis based on this information.`;
         </div>
       )}
 
-      <header className="bg-white px-6 py-4 border-b border-slate-200 flex items-center justify-between shadow-sm z-20">
+      <header className="bg-white dark:bg-slate-800 px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between shadow-sm z-20 transition-colors duration-300">
         <div className="flex items-center gap-3">
           <div className="bg-blue-600 p-2 rounded-lg text-white"><Activity className="w-6 h-6" /></div>
           <div>
-            <h1 className="text-xl font-bold text-slate-800 tracking-tight">Dr. AI</h1>
+            <h1 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">Dr. AI</h1>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <p className="text-xs text-slate-500 font-medium">System Ready</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">System Ready</p>
               {isAutoSaved && <span className="text-[10px] text-slate-400 flex items-center gap-1"><Cloud className="w-3 h-3" /> Auto-saved</span>}
             </div>
           </div>
         </div>
         
         <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center gap-2 mr-4 px-3 py-1.5 bg-slate-50 rounded-full border border-slate-100">
+          <div className="hidden sm:flex items-center gap-2 mr-4 px-3 py-1.5 bg-slate-50 dark:bg-slate-700/50 rounded-full border border-slate-100 dark:border-slate-600 transition-colors duration-300">
              {user.photo ? (
                <img src={user.photo} className="w-6 h-6 rounded-full" alt="avatar" />
              ) : (
-               <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
+               <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center">
                  <UserIcon className="w-4 h-4" />
                </div>
              )}
-             <span className="text-xs font-semibold text-slate-700">{user.name}</span>
+             <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{user.name}</span>
+             {isPro ? (
+               <span className="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full">PRO</span>
+             ) : (
+               <button onClick={() => setShowPricingModal(true)} className="bg-slate-200 text-slate-600 hover:bg-amber-100 hover:text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full transition-colors flex items-center gap-1">
+                 <Lock className="w-3 h-3" /> FREE
+               </button>
+             )}
           </div>
 
           <div className="flex items-center gap-2">
             <button 
+              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+              className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              title="Toggle Theme"
+            >
+              {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+            </button>
+
+            <button 
+              onClick={() => setTextSize(s => s === 'sm' ? 'base' : s === 'base' ? 'lg' : 'sm')}
+              className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1"
+              title="Toggle Text Size"
+            >
+              <Type className="w-5 h-5" />
+              <span className="text-[10px] font-bold uppercase">{textSize}</span>
+            </button>
+
+            <button 
               onClick={() => setIsEli5(!isEli5)}
-              className={`px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase transition-all ${isEli5 ? 'bg-orange-600 border-orange-700 text-white shadow-inner' : 'bg-slate-50 border-slate-200 text-slate-500'}`}
+              className={`px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase transition-all ${isEli5 ? 'bg-orange-600 border-orange-700 text-white shadow-inner' : 'bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-300'}`}
               title="Explain Like I'm 5"
             >
               ELI5 {isEli5 ? 'ON' : 'OFF'}
             </button>
             
             <button 
-              onClick={() => setShowDashboard(true)}
-              className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+              onClick={() => {
+                if (isPro) setShowDashboard(true);
+                else setShowPricingModal(true);
+              }}
+              className="relative p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
               title="Health Suite"
             >
               <Heart className="w-5 h-5" />
+              {!isPro && <Lock className="w-3 h-3 absolute -top-1 -right-1 text-slate-400" />}
             </button>
 
-            <div className="flex items-center gap-2 border-r border-slate-200 pr-2 mr-2">
+            <div className="flex items-center gap-2 border-r border-slate-200 dark:border-slate-700 pr-2 mr-2">
               <button 
                 onClick={toggleListening}
-                className={`p-2 transition-colors ${isListening ? 'text-red-500 animate-pulse' : 'text-slate-400 hover:text-blue-600'}`}
+                className={`relative p-2 transition-colors ${isListening ? 'text-red-500 animate-pulse' : 'text-slate-400 hover:text-blue-600 dark:hover:text-blue-400'}`}
                 title="Voice Dictation"
               >
                 {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                {!isPro && <Lock className="w-3 h-3 absolute -top-1 -right-1 text-slate-400" />}
               </button>
               
               <button 
                 onClick={handleSaveLocal}
-                className="p-2 text-slate-400 hover:text-blue-600 transition-colors flex items-center gap-2"
+                className="relative p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-2"
                 title="Save Chat to Local Storage"
               >
                 <Cloud className="w-5 h-5" />
                 <span className="hidden lg:inline text-[10px] font-bold uppercase tracking-wider">Save Chat</span>
+                {!isPro && <Lock className="w-3 h-3 absolute -top-1 -right-1 text-slate-400" />}
               </button>
 
               <button 
                 onClick={handleDownloadReport} 
-                className="p-2 text-slate-400 hover:text-blue-600 flex items-center gap-2 transition-colors"
+                className="relative p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-2 transition-colors"
                 title="Download PDF Medical Report"
               >
                 <Download className="w-5 h-5" />
                 <span className="hidden md:inline text-[10px] font-bold uppercase tracking-wider">PDF Report</span>
+                {!isPro && <Lock className="w-3 h-3 absolute -top-1 -right-1 text-slate-400" />}
               </button>
 
               <button 
                 onClick={handleClearHistory} 
-                className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                className="p-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                 title="Clear History"
               >
                 <Trash2 className="w-5 h-5" />
@@ -471,7 +571,7 @@ Please provide a detailed medical analysis based on this information.`;
 
           <button 
             onClick={handleLogout}
-            className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
+            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
             title="Log Out"
           >
             <LogOut className="w-5 h-5" />
@@ -479,16 +579,22 @@ Please provide a detailed medical analysis based on this information.`;
         </div>
       </header>
 
-      <ModeSelector currentMode={currentMode} onModeChange={setCurrentMode} disabled={isLoading} />
+      <ModeSelector 
+        currentMode={currentMode} 
+        onModeChange={setCurrentMode} 
+        disabled={isLoading} 
+        isPro={isPro}
+        onRequirePro={() => setShowPricingModal(true)}
+      />
 
       <div className="flex-1 overflow-y-auto p-4 md:p-6 scrollbar-hide">
         <div className="max-w-4xl mx-auto min-h-full flex flex-col justify-end">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center text-center text-slate-400 my-auto py-20">
-               <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-6 border border-blue-100"><Activity className="w-10 h-10 text-blue-400" /></div>
-               <h3 className="text-xl font-bold text-slate-800 mb-2">Hello, {user.name.split(' ')[0]}</h3>
-               <p className="max-w-md mx-auto mb-4 text-sm font-medium text-slate-500" style={{ fontFamily: 'system-ui' }}>How can Dr. AI assist you today?</p>
-               <div className="text-[10px] text-slate-300 uppercase tracking-widest font-bold mt-8">System by Muhammad Aneeq Ur Rehman</div>
+               <div className="w-20 h-20 bg-blue-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6 border border-blue-100 dark:border-slate-700"><Activity className="w-10 h-10 text-blue-400 dark:text-blue-500" /></div>
+               <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-2">Hello, {user.name.split(' ')[0]}</h3>
+               <p className="max-w-md mx-auto mb-4 text-sm font-medium text-slate-500 dark:text-slate-400" style={{ fontFamily: 'system-ui' }}>How can Dr. AI assist you today?</p>
+               <div className="text-[10px] text-slate-300 dark:text-slate-600 uppercase tracking-widest font-bold mt-8">System by Muhammad Aneeq Ur Rehman</div>
             </div>
           ) : (
             messages.map((msg) => (
@@ -504,7 +610,13 @@ Please provide a detailed medical analysis based on this information.`;
         </div>
       </div>
 
-      <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} activeMode={currentMode} />
+      <ChatInput 
+        onSendMessage={handleSendMessage} 
+        isLoading={isLoading} 
+        activeMode={currentMode}
+        isPro={isPro}
+        onRequirePro={() => setShowPricingModal(true)}
+      />
     </div>
   );
 };

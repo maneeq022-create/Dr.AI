@@ -31,8 +31,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-500">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4 transition-colors duration-300">
+      <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-in fade-in zoom-in duration-500">
         
         {/* Header Section */}
         <div className="bg-blue-600 p-8 text-white text-center relative">
@@ -47,12 +47,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         {/* Content Section */}
         <div className="p-8 space-y-8">
           <div className="text-center space-y-2">
-            <h2 className="text-xl font-bold text-slate-800">Welcome to Dr. AI</h2>
-            <p className="text-sm text-slate-500">Please sign in to start your consultation</p>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Welcome to Dr. AI</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Please sign in to start your consultation</p>
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-xs rounded-xl text-center">
+            <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 text-xs rounded-xl text-center">
               {error}
             </div>
           )}
@@ -61,7 +61,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             type="button"
             onClick={handleGoogleLogin}
             disabled={isLoading}
-            className="w-full bg-white border border-slate-200 text-slate-700 font-bold py-4 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-50 transition-all active:scale-[0.98] disabled:opacity-50 shadow-sm"
+            className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white font-bold py-4 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-600 transition-all active:scale-[0.98] disabled:opacity-50 shadow-sm"
           >
             {isLoading ? (
               <div className="w-5 h-5 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin"></div>
@@ -78,8 +78,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           </p>
         </div>
 
-        <div className="p-6 bg-slate-50 border-t border-slate-200 text-center">
-          <p className="text-xs text-slate-400 leading-relaxed italic">
+        <div className="p-6 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 text-center">
+          <p className="text-xs text-slate-400 dark:text-slate-500 leading-relaxed italic">
             Developed by Muhammad Aneeq Ur Rehman
           </p>
         </div>

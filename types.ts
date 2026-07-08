@@ -1,3 +1,12 @@
+export interface AuthUser {
+  uid: string;
+  name: string;
+  email: string;
+  photo?: string;
+  subscriptionStatus?: 'free' | 'trial' | 'premium';
+  trialEndsAt?: Date | null;
+}
+
 export enum ChatMode {
   CONSULTATION = 'CONSULTATION', // gemini-3.1-pro-preview (Thinking)
   VET = 'VET',                   // Specialized Veterinary Mode

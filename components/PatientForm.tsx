@@ -28,7 +28,7 @@ export const PatientForm: React.FC<PatientFormProps> = ({ onClose, onSubmit }) =
       <motion.div 
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden"
+        className="w-full max-w-lg bg-white dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden transition-colors duration-300"
       >
         <div className="p-6 bg-blue-600 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -51,7 +51,7 @@ export const PatientForm: React.FC<PatientFormProps> = ({ onClose, onSubmit }) =
                 type="text" 
                 value={formData.name}
                 onChange={e => setFormData({...formData, name: e.target.value})}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder-slate-400 dark:placeholder-slate-500"
                 placeholder="e.g. John Doe"
               />
             </div>
@@ -64,7 +64,7 @@ export const PatientForm: React.FC<PatientFormProps> = ({ onClose, onSubmit }) =
                 type="number" 
                 value={formData.age}
                 onChange={e => setFormData({...formData, age: e.target.value})}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder-slate-400 dark:placeholder-slate-500"
                 placeholder="Years"
               />
             </div>
@@ -79,7 +79,7 @@ export const PatientForm: React.FC<PatientFormProps> = ({ onClose, onSubmit }) =
               rows={2}
               value={formData.symptoms}
               onChange={e => setFormData({...formData, symptoms: e.target.value})}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none"
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none placeholder-slate-400 dark:placeholder-slate-500"
               placeholder="Describe what you are feeling..."
             />
           </div>
@@ -92,7 +92,7 @@ export const PatientForm: React.FC<PatientFormProps> = ({ onClose, onSubmit }) =
                 type="text" 
                 value={formData.duration}
                 onChange={e => setFormData({...formData, duration: e.target.value})}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder-slate-400 dark:placeholder-slate-500"
                 placeholder="e.g. 2 days"
               />
             </div>
@@ -104,7 +104,7 @@ export const PatientForm: React.FC<PatientFormProps> = ({ onClose, onSubmit }) =
                     key={n}
                     type="button"
                     onClick={() => setFormData({...formData, intensity: n.toString()})}
-                    className={`flex-1 py-2 text-[10px] font-bold rounded-lg border transition-all ${formData.intensity === n.toString() ? 'bg-blue-600 border-blue-700 text-white shadow-lg scale-110' : 'bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100'}`}
+                    className={`flex-1 py-2 text-[10px] font-bold rounded-lg border transition-all ${formData.intensity === n.toString() ? 'bg-blue-600 border-blue-700 text-white shadow-lg shadow-blue-500/30 scale-110' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
                   >
                     {n}
                   </button>
@@ -121,7 +121,7 @@ export const PatientForm: React.FC<PatientFormProps> = ({ onClose, onSubmit }) =
               rows={2}
               value={formData.medications}
               onChange={e => setFormData({...formData, medications: e.target.value})}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none"
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none placeholder-slate-400 dark:placeholder-slate-500"
               placeholder="List any medicine you are taking..."
             />
           </div>

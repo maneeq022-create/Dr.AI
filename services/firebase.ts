@@ -32,11 +32,51 @@ export const syncUserProfile = async (user: FirebaseUser) => {
       name: user.displayName || 'Anonymous User',
       photoURL: user.photoURL || null,
       createdAt: serverTimestamp(),
-      lastActive: serverTimestamp()
+      lastActive: serverTimestamp(),
+      subscriptionStatus: 'free',
+      trialEndsAt: null
     });
   } else {
+    // If trial is expired, switch back to free
+    const data = userDoc.data();
+    if (data.subscriptionStatus === 'trial' && data.trialEndsAt) {
+      const trialEndsAt = data.trialEndsAt.toDate();
+      if (new Date() > trialEndsAt) {
+        await updateDoc(userRef, {
+          subscriptionStatus: 'free',
+          lastActive: serverTimestamp()
+        });
+        return;
+      }
+    }
+    
     await updateDoc(userRef, {
       lastActive: serverTimestamp()
+    });
+  }
+};
+
+export const upgradeSubscription = async (userId: string, plan: 'monthly' | 'yearly' | 'trial') => {
+  const userRef = doc(db, 'users', userId);
+  const now = new Date();
+  
+  if (plan === 'trial') {
+    now.setDate(now.getDate() + 3);
+    await updateDoc(userRef, {
+      subscriptionStatus: 'trial',
+      trialEndsAt: now
+    });
+  } else if (plan === 'monthly') {
+    now.setDate(now.getDate() + 30);
+    await updateDoc(userRef, {
+      subscriptionStatus: 'premium',
+      trialEndsAt: now // using this field as expiry too
+    });
+  } else if (plan === 'yearly') {
+    now.setFullYear(now.getFullYear() + 1);
+    await updateDoc(userRef, {
+      subscriptionStatus: 'premium',
+      trialEndsAt: now
     });
   }
 };

@@ -18,21 +18,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onFillFor
     
     switch (message.mode) {
       case ChatMode.CONSULTATION:
-        return 'bg-white border border-slate-200 text-slate-800 rounded-bl-none shadow-sm';
+        return 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-bl-none shadow-sm';
       case ChatMode.VET:
-        return 'bg-amber-50 border border-amber-100 text-slate-800 rounded-bl-none shadow-sm';
+        return 'bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800 text-slate-800 dark:text-amber-100 rounded-bl-none shadow-sm';
       case ChatMode.PEDIATRIC:
-        return 'bg-rose-50 border border-rose-100 text-slate-800 rounded-bl-none shadow-sm';
+        return 'bg-rose-50 dark:bg-rose-900/30 border border-rose-100 dark:border-rose-800 text-slate-800 dark:text-rose-100 rounded-bl-none shadow-sm';
       case ChatMode.ELDERLY:
-        return 'bg-indigo-50 border border-indigo-100 text-slate-900 rounded-bl-none shadow-sm text-lg font-medium'; // Larger text for elderly
+        return 'bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 text-slate-900 dark:text-indigo-100 rounded-bl-none shadow-sm font-medium'; // removed text-lg as it will be managed globally
       case ChatMode.PREGNANCY:
-        return 'bg-pink-50 border border-pink-100 text-slate-800 rounded-bl-none shadow-sm';
+        return 'bg-pink-50 dark:bg-pink-900/30 border border-pink-100 dark:border-pink-800 text-slate-800 dark:text-pink-100 rounded-bl-none shadow-sm';
       case ChatMode.FIND_CARE:
-        return 'bg-emerald-50 border border-emerald-100 text-slate-800 rounded-bl-none shadow-sm';
+        return 'bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800 text-slate-800 dark:text-emerald-100 rounded-bl-none shadow-sm';
       case ChatMode.RESEARCH:
-        return 'bg-violet-50 border border-violet-100 text-slate-800 rounded-bl-none shadow-sm';
+        return 'bg-violet-50 dark:bg-violet-900/30 border border-violet-100 dark:border-violet-800 text-slate-800 dark:text-violet-100 rounded-bl-none shadow-sm';
       default:
-        return 'bg-white border-slate-200';
+        return 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100';
     }
   };
 
@@ -70,7 +70,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onFillFor
       <div className={`flex max-w-[85%] md:max-w-[75%] gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
         
         {/* Avatar */}
-        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center shadow-sm ${isUser ? 'bg-blue-700' : 'bg-white border border-slate-100'}`}>
+        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center shadow-sm ${isUser ? 'bg-blue-700' : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700'}`}>
           <ModeIcon />
         </div>
 
@@ -101,14 +101,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onFillFor
 
             {/* Text Bubble */}
             {message.text && (
-                <div className={`p-5 rounded-2xl ${getModeStyles()} text-sm md:text-base leading-relaxed relative`}>
+                <div className={`p-5 rounded-2xl ${getModeStyles()} leading-relaxed relative`}>
                     <ReactMarkdown 
                         components={{
                             ul: ({node, ...props}) => <ul className="list-disc ml-4 my-2 space-y-1" {...props} />,
                             ol: ({node, ...props}) => <ol className="list-decimal ml-4 my-2 space-y-1" {...props} />,
                             strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
                             p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
-                            a: ({node, ...props}) => <a className="text-blue-600 underline hover:text-blue-800" target="_blank" rel="noopener noreferrer" {...props} />,
+                            a: ({node, ...props}) => <a className="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300" target="_blank" rel="noopener noreferrer" {...props} />,
                         }}
                     >
                         {message.text}
@@ -119,14 +119,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onFillFor
                         <div className={`absolute top-2 right-2 flex gap-1 transition-all duration-200 ${copied ? 'opacity-100' : 'opacity-0 group-hover/bubble:opacity-100'}`}>
                             <button 
                                 onClick={speak}
-                                className="p-1.5 rounded-lg bg-white/80 hover:bg-white text-slate-500 hover:text-blue-600 shadow-sm border border-slate-100"
+                                className="p-1.5 rounded-lg bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 shadow-sm border border-slate-100 dark:border-slate-700"
                                 title="Listen to response"
                             >
                                 <Volume2 className="w-3.5 h-3.5" />
                             </button>
                             <button 
                                 onClick={handleCopy}
-                                className="p-1.5 rounded-lg bg-white/80 hover:bg-white text-slate-500 hover:text-blue-600 shadow-sm border border-slate-100"
+                                className="p-1.5 rounded-lg bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 shadow-sm border border-slate-100 dark:border-slate-700"
                                 title="Copy to clipboard"
                             >
                                 {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}

@@ -1,5 +1,5 @@
 import React, { useState, KeyboardEvent, useEffect, useRef, ChangeEvent } from 'react';
-import { Send, Sparkles, Mic, MicOff, Clock, Search, Paperclip, X, Image as ImageIcon, Film, Layout, Maximize } from 'lucide-react';
+import { Send, Sparkles, Mic, MicOff, Clock, Search, Paperclip, X, Image as ImageIcon, Film, Layout, Maximize, Lock } from 'lucide-react';
 import { ChatMode, Attachment } from '../types';
 import { CARE_CHIPS } from '../constants';
 
@@ -7,6 +7,8 @@ interface ChatInputProps {
   onSendMessage: (text: string, attachments: Attachment[]) => void;
   isLoading: boolean;
   activeMode: ChatMode;
+  isPro?: boolean;
+  onRequirePro?: () => void;
 }
 
 const SEARCH_SUFFIXES = [
@@ -20,7 +22,7 @@ const SEARCH_SUFFIXES = [
 const ASPECT_RATIOS = ["1:1", "3:2", "4:3", "16:9", "9:16", "21:9"];
 const IMAGE_SIZES = ["1K", "2K", "4K"];
 
-export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, activeMode }) => {
+export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, activeMode, isPro, onRequirePro }) => {
   const [input, setInput] = useState('');
   const [duration, setDuration] = useState('');
   const [isListening, setIsListening] = useState(false);
@@ -189,7 +191,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
   };
 
   return (
-    <div className="bg-white border-t border-slate-200 p-4 pb-6 relative z-30">
+    <div className="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-4 pb-6 relative z-30 transition-colors duration-300">
       <div className="max-w-4xl mx-auto">
         {activeMode === ChatMode.FIND_CARE && !input.trim() && !attachments.length && (
             <div className="flex gap-2 mb-3 overflow-x-auto pb-1 scrollbar-hide">
@@ -208,19 +210,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
         {showSuggestions && (
             <div className="absolute bottom-[calc(100%+8px)] left-0 w-full px-4 mb-2 z-50">
                 <div className="max-w-4xl mx-auto">
-                    <div className="bg-white border border-slate-200 rounded-2xl shadow-xl p-2 flex flex-col gap-1 max-h-56 overflow-y-auto animate-in slide-in-from-bottom-2">
-                        <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50 mb-1">Medical Care Suggestions</div>
+                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl p-2 flex flex-col gap-1 max-h-56 overflow-y-auto animate-in slide-in-from-bottom-2">
+                        <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-700 mb-1">Medical Care Suggestions</div>
                         {suggestions.map((s, idx) => (
                             <button
                                 key={idx}
                                 onClick={() => handleSuggestionClick(s)}
-                                className="text-left px-4 py-2.5 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl text-slate-600 text-sm flex items-center justify-between group transition-all"
+                                className="text-left px-4 py-2.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:text-emerald-700 dark:hover:text-emerald-400 rounded-xl text-slate-600 dark:text-slate-300 text-sm flex items-center justify-between group transition-all"
                             >
                                 <div className="flex items-center gap-3">
-                                    <Search className="w-4 h-4 text-slate-300 group-hover:text-emerald-500" />
+                                    <Search className="w-4 h-4 text-slate-300 dark:text-slate-500 group-hover:text-emerald-500 dark:group-hover:text-emerald-400" />
                                     <span className="font-medium">{s}</span>
                                 </div>
-                                <Sparkles className="w-3 h-3 text-emerald-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <Sparkles className="w-3 h-3 text-emerald-300 dark:text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </button>
                         ))}
                     </div>
@@ -232,16 +234,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
             <div className="flex gap-3 mb-3 overflow-x-auto pb-2">
                 {attachments.map((att, idx) => (
                     <div key={idx} className="relative group shrink-0">
-                        <div className="w-20 h-20 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center">
+                        <div className="w-20 h-20 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                             {att.type === 'video' ? (
-                                <Film className="w-8 h-8 text-slate-400" />
+                                <Film className="w-8 h-8 text-slate-400 dark:text-slate-500" />
                             ) : (
                                 <img src={att.url} alt="preview" className="w-full h-full object-cover" />
                             )}
                         </div>
                         <button 
                             onClick={() => removeAttachment(idx)}
-                            className="absolute -top-1.5 -right-1.5 bg-white text-slate-500 rounded-full p-0.5 shadow-md border border-slate-100 hover:text-red-500"
+                            className="absolute -top-1.5 -right-1.5 bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-300 rounded-full p-0.5 shadow-md border border-slate-100 dark:border-slate-600 hover:text-red-500 dark:hover:text-red-400"
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -252,7 +254,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
 
         <div className="flex flex-col gap-3">
             {showMediaTools && (
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-1 animate-in zoom-in-95 duration-200">
+                <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 mb-1 animate-in zoom-in-95 duration-200">
                     <div className="flex flex-wrap gap-6">
                         <div>
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
@@ -263,7 +265,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
                                     <button
                                         key={r}
                                         onClick={() => setSelectedRatio(r)}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${selectedRatio === r ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-500 border border-slate-200 hover:border-blue-300'}`}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${selectedRatio === r ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/20' : 'bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:border-blue-300 dark:hover:border-blue-500'}`}
                                     >
                                         {r}
                                     </button>
@@ -279,7 +281,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
                                     <button
                                         key={s}
                                         onClick={() => setSelectedSize(s)}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${selectedSize === s ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white text-slate-500 border border-slate-200 hover:border-indigo-300'}`}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${selectedSize === s ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20' : 'bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500'}`}
                                     >
                                         {s}
                                     </button>
@@ -288,13 +290,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => setInput(prev => `/image ${prev}`)}
-                                    className="px-4 py-2 bg-blue-50 text-blue-700 rounded-xl text-xs font-bold border border-blue-100 hover:bg-blue-100 flex items-center gap-2"
+                                    className="px-4 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-xl text-xs font-bold border border-blue-100 dark:border-blue-800/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 flex items-center gap-2"
                                 >
                                     <ImageIcon className="w-4 h-4" /> AI Visualization
                                 </button>
                                 <button
                                     onClick={() => setInput(prev => `/video ${prev}`)}
-                                    className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-bold border border-indigo-100 hover:bg-indigo-100 flex items-center gap-2"
+                                    className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 rounded-xl text-xs font-bold border border-indigo-100 dark:border-indigo-800/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 flex items-center gap-2"
                                 >
                                     <Film className="w-4 h-4" /> Veo Simulation
                                 </button>
@@ -324,12 +326,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
                         <Paperclip className="w-5 h-5" />
                     </button>
                     <button 
-                        onClick={() => setShowMediaTools(!showMediaTools)}
+                        onClick={() => {
+                            if (!isPro && onRequirePro) {
+                                onRequirePro();
+                                return;
+                            }
+                            setShowMediaTools(!showMediaTools)
+                        }}
                         disabled={isLoading}
-                        className={`p-3 rounded-xl transition-colors shrink-0 ${showMediaTools ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'}`}
+                        className={`relative p-3 rounded-xl transition-colors shrink-0 ${showMediaTools ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'}`}
                         title="AI Image/Video Tools"
                     >
                         <ImageIcon className="w-5 h-5" />
+                        {!isPro && <Lock className="w-3 h-3 absolute -top-1 -right-1 text-slate-400" />}
                     </button>
                 </div>
 
@@ -341,7 +350,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder={getPlaceholder()}
-                        className={`w-full pl-5 pr-14 py-4 rounded-2xl bg-slate-50 border-2 border-slate-200 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all text-slate-700 placeholder-slate-400 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`w-full pl-5 pr-14 py-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 focus:outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 transition-all text-slate-700 dark:text-slate-100 placeholder-slate-400 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         disabled={isLoading}
                     />
                     
@@ -399,7 +408,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
                         onChange={(e) => setDuration(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder="Symptom Duration (e.g., '2 days', 'since this morning')"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all text-slate-700 placeholder-slate-400"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-1 focus:ring-blue-100 dark:focus:ring-blue-900/30 transition-all text-slate-700 dark:text-slate-200 placeholder-slate-400"
                     />
                  </div>
             )}

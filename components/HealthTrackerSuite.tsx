@@ -40,7 +40,7 @@ export const HealthTrackerSuite: React.FC<HealthTrackerSuiteProps> = ({ onClose 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
-        className="w-full max-w-2xl h-full sm:h-[95vh] bg-white sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+        className="w-full max-w-2xl h-full sm:h-[95vh] bg-white dark:bg-slate-900 sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
       >
         {/* Header */}
         <div className="p-6 bg-blue-600 text-white flex items-center justify-between">
@@ -62,13 +62,13 @@ export const HealthTrackerSuite: React.FC<HealthTrackerSuiteProps> = ({ onClose 
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-slate-100 px-6">
+        <div className="flex border-b border-slate-100 dark:border-slate-800 px-6">
           {(['vitals', 'meds', 'logs', 'profile'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`py-4 px-4 text-sm font-bold uppercase tracking-widest relative transition-colors ${
-                activeTab === tab ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'
+                activeTab === tab ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
               }`}
             >
               {tab}
@@ -92,30 +92,30 @@ export const HealthTrackerSuite: React.FC<HealthTrackerSuiteProps> = ({ onClose 
               >
                 {/* Stats Cards */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-slate-500 uppercase">BMI Score</span>
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">BMI Score</span>
                       <Calculator className="w-4 h-4 text-blue-500" />
                     </div>
-                    <div className="text-2xl font-bold text-slate-800 tracking-tight">22.4</div>
-                    <span className="text-[10px] font-bold text-emerald-600 uppercase">Optimal Range</span>
+                    <div className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">22.4</div>
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Optimal Range</span>
                   </div>
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-slate-500 uppercase">Daily Water</span>
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Daily Water</span>
                       <Droplets className="w-4 h-4 text-sky-500" />
                     </div>
-                    <div className="text-2xl font-bold text-slate-800 tracking-tight">1.2L / 2L</div>
-                    <div className="w-full h-1.5 bg-sky-100 rounded-full mt-2 overflow-hidden">
+                    <div className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">1.2L / 2L</div>
+                    <div className="w-full h-1.5 bg-sky-100 dark:bg-sky-900/50 rounded-full mt-2 overflow-hidden">
                       <div className="w-[60%] h-full bg-sky-500 rounded-full" />
                     </div>
                   </div>
                 </div>
 
                 {/* Blood Pressure Chart */}
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm">
                   <div className="flex items-center justify-between mb-6">
-                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                    <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
                       <TrendingUp className="w-4 h-4 text-rose-500" /> Blood Pressure (mmHg)
                     </h3>
                   </div>
@@ -137,8 +137,8 @@ export const HealthTrackerSuite: React.FC<HealthTrackerSuiteProps> = ({ onClose 
                 </div>
 
                 {/* Fever Chart */}
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-                  <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                  <h3 className="font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
                     <Heart className="w-4 h-4 text-orange-500" /> Fever Tracking (°F)
                   </h3>
                   <div className="h-64 w-full">
@@ -164,8 +164,8 @@ export const HealthTrackerSuite: React.FC<HealthTrackerSuiteProps> = ({ onClose 
                 className="space-y-4"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-slate-800">Active Prescriptions</h3>
-                  <button className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors">
+                  <h3 className="font-bold text-slate-800 dark:text-white">Active Prescriptions</h3>
+                  <button className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors">
                     <Plus className="w-5 h-5" />
                   </button>
                 </div>
@@ -174,14 +174,14 @@ export const HealthTrackerSuite: React.FC<HealthTrackerSuiteProps> = ({ onClose 
                   { name: 'Amoxicillin', dosage: '500mg', freq: '3x Daily', time: 'Remaining: 4 days' },
                   { name: 'Lisinopril', dosage: '10mg', freq: 'Every Morning', time: 'Refill needed in 12 days' }
                 ].map((med, i) => (
-                  <div key={i} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+                  <div key={i} className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
-                        <Pill className="w-6 h-6 text-blue-500" />
+                      <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                        <Pill className="w-6 h-6 text-blue-500 dark:text-blue-400" />
                       </div>
                       <div>
-                        <h4 className="font-bold text-slate-800">{med.name}</h4>
-                        <p className="text-xs text-slate-500 font-medium">{med.dosage} • {med.freq}</p>
+                        <h4 className="font-bold text-slate-800 dark:text-white">{med.name}</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{med.dosage} • {med.freq}</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -261,8 +261,8 @@ export const HealthTrackerSuite: React.FC<HealthTrackerSuiteProps> = ({ onClose 
           </AnimatePresence>
         </div>
 
-        <div className="p-6 bg-slate-50 border-t border-slate-100 text-center">
-           <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Secure Health Sync Active via Firebase</p>
+        <div className="p-6 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 text-center">
+           <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-bold">Secure Health Sync Active via Firebase</p>
         </div>
       </motion.div>
     </div>
