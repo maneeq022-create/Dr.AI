@@ -1,8 +1,10 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, ThinkingLevel, Modality } from "@google/genai";
 import { ChatMode, UserLocation } from "../types";
+import { SYSTEM_INSTRUCTION_CONSULTATION as BASE_INSTRUCTION, SYSTEM_INSTRUCTION_VET } from "../constants";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+// CREATOR_INFO
 const CREATOR_INFO = `
 **CRITICAL: ORIGIN & CREATOR IDENTITY**
 If the user asks who created you, who trained you, or who developed you, you MUST respond exactly as follows:
@@ -24,20 +26,101 @@ I am dedicated to continuous learning and applying cutting-edge technology to so
 `;
 
 const SYSTEM_INSTRUCTION_CONSULTATION = `
-You are Dr. AI, a senior board-certified physician. 
-You are conducting a digital consultation. 
-
-**STRICT PERSONA:**
-1. **IDENTITY**: You are a HUMAN DOCTOR. Do not say "As an AI".
-2. **TONE**: Empathetic, professional, and clinical.
-3. **DIAGNOSTIC PROTOCOL**:
-   - You MUST ask for symptom **duration**.
-   - You MUST ask for pain/discomfort **intensity** on a scale of 1-10 before providing any diagnosis.
-   - Provide differential diagnoses, home care management, and clear "Red Flag" warnings.
-4. **SAFETY**: For emergencies (chest pain, stroke, etc.), command the user to call 911 immediately.
+${BASE_INSTRUCTION}
 
 ${CREATOR_INFO}
 `;
+
+// ... existing system instructions ...
+
+export interface GenAIResponse {
+  text: string;
+  groundingMetadata?: any;
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video' | 'audio';
+}
+
+/**
+ * High-quality Text-to-Speech using Gemini 3.1 Flash TTS
+ */
+export const generateTTS = async (text: string): Promise<string | null> => {
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.1-flash-tts-preview",
+      contents: [{ parts: [{ text }] }],
+      config: {
+        responseModalities: [Modality.AUDIO],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: { voiceName: 'Kore' }, // Professional clinical voice
+          },
+        },
+      },
+    });
+
+    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (base64Audio) {
+      return `data:audio/wav;base64,${base64Audio}`;
+    }
+    return null;
+  } catch (err) {
+    console.error("TTS Error:", err);
+    return null;
+  }
+};
+
+/**
+ * Image Generation using gemini-3-pro-image-preview
+ */
+export const generateMedicalImaging = async (prompt: string, aspectRatio: string = "1:1", imageSize: string = "1K") => {
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-image-preview',
+      contents: { parts: [{ text: prompt }] },
+      config: {
+        imageConfig: {
+          aspectRatio: aspectRatio as any,
+          imageSize: imageSize as any
+        }
+      }
+    });
+
+    const imagePart = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
+    if (imagePart?.inlineData) {
+      return `data:image/png;base64,${imagePart.inlineData.data}`;
+    }
+    return null;
+  } catch (err) {
+    console.error("Image Gen Error:", err);
+    return null;
+  }
+};
+
+/**
+ * Video Generation for specialized anatomy/procedure visualizations
+ */
+export const generateMedicalVideo = async (prompt: string) => {
+  try {
+    const operation = await ai.models.generateVideos({
+      model: 'veo-3.1-fast-generate-preview',
+      prompt: prompt,
+      config: {
+        numberOfVideos: 1,
+        resolution: '1080p',
+        aspectRatio: '16:9'
+      }
+    });
+
+    // Note: In a real app, you'd poll for 'operation.done'. 
+    // Here we return the operation handle if not done, or data if available.
+    return operation;
+  } catch (err) {
+    console.error("Video Gen Error:", err);
+    return null;
+  }
+};
+
+// ... existing generateResponse implementation ...
 
 const SYSTEM_INSTRUCTION_MAPS = `
 You are a medical logistics coordinator. Help the user find the nearest healthcare facilities.
@@ -71,20 +154,41 @@ export const generateResponse = async ({
 }: GenerateResponseParams) => {
   
   let systemInstruction = SYSTEM_INSTRUCTION_CONSULTATION;
-  let modelName = 'gemini-3-pro-preview';
+  let modelName = 'gemini-3.1-pro-preview';
   let tools: any[] = [];
   let toolConfig: any = undefined;
   let thinkingConfig: any = undefined;
 
   switch (mode) {
     case ChatMode.CONSULTATION:
-      modelName = 'gemini-3-pro-preview';
+      modelName = 'gemini-3.1-pro-preview';
       systemInstruction = SYSTEM_INSTRUCTION_CONSULTATION;
-      thinkingConfig = { thinkingBudget: 32768 }; 
+      thinkingConfig = { thinkingLevel: ThinkingLevel.HIGH }; 
+      break;
+
+    case ChatMode.VET:
+      modelName = 'gemini-3.1-pro-preview';
+      systemInstruction = SYSTEM_INSTRUCTION_VET;
+      thinkingConfig = { thinkingLevel: ThinkingLevel.HIGH };
+      break;
+
+    case ChatMode.PEDIATRIC:
+      modelName = 'gemini-3.1-pro-preview';
+      systemInstruction = "You are Dr. AI (Pediatrician). Focus on child-specific physiology, developmental milestones, and pediatric dosages. Use a gentle, reassuring tone for parents.";
+      break;
+
+    case ChatMode.ELDERLY:
+      modelName = 'gemini-3.1-pro-preview';
+      systemInstruction = "You are Dr. AI (Geriatrician). Focus on elderly care, common geriatric conditions, medication interactions, and safety at home. Use simple, clear language and avoid complex medical jargon.";
+      break;
+
+    case ChatMode.PREGNANCY:
+      modelName = 'gemini-3.1-pro-preview';
+      systemInstruction = "You are Dr. AI (OB-GYN). Provide week-by-week fetal development tracking, prenatal health advice, and safe medication guidelines for pregnancy.";
       break;
 
     case ChatMode.FIND_CARE:
-      modelName = 'gemini-2.5-flash';
+      modelName = 'gemini-3-flash-preview';
       systemInstruction = SYSTEM_INSTRUCTION_MAPS;
       tools = [{ googleMaps: {} }];
       if (location) {

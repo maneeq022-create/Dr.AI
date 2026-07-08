@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { User, Bot, BrainCircuit, Map, ExternalLink, Copy, Check, Link2 } from 'lucide-react';
+import { User, Bot, BrainCircuit, Map, ExternalLink, Copy, Check, Link2, Volume2, Dog, Baby, HeartPulse, UserCircle2, ClipboardList } from 'lucide-react';
 import { Message, ChatMode } from '../types';
 
 interface MessageBubbleProps {
   message: Message;
+  onFillForm: () => void;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onFillForm }) => {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === 'user';
   
@@ -18,6 +19,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     switch (message.mode) {
       case ChatMode.CONSULTATION:
         return 'bg-white border border-slate-200 text-slate-800 rounded-bl-none shadow-sm';
+      case ChatMode.VET:
+        return 'bg-amber-50 border border-amber-100 text-slate-800 rounded-bl-none shadow-sm';
+      case ChatMode.PEDIATRIC:
+        return 'bg-rose-50 border border-rose-100 text-slate-800 rounded-bl-none shadow-sm';
+      case ChatMode.ELDERLY:
+        return 'bg-indigo-50 border border-indigo-100 text-slate-900 rounded-bl-none shadow-sm text-lg font-medium'; // Larger text for elderly
+      case ChatMode.PREGNANCY:
+        return 'bg-pink-50 border border-pink-100 text-slate-800 rounded-bl-none shadow-sm';
       case ChatMode.FIND_CARE:
         return 'bg-emerald-50 border border-emerald-100 text-slate-800 rounded-bl-none shadow-sm';
       case ChatMode.RESEARCH:
@@ -31,10 +40,19 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     if (isUser) return <User className="w-5 h-5 text-blue-100" />;
     switch (message.mode) {
         case ChatMode.CONSULTATION: return <Bot className="w-6 h-6 text-blue-600" />;
+        case ChatMode.VET: return <Dog className="w-6 h-6 text-amber-600" />;
+        case ChatMode.PEDIATRIC: return <Baby className="w-6 h-6 text-rose-600" />;
+        case ChatMode.ELDERLY: return <UserCircle2 className="w-6 h-6 text-indigo-600" />;
+        case ChatMode.PREGNANCY: return <HeartPulse className="w-6 h-6 text-pink-600" />;
         case ChatMode.FIND_CARE: return <Map className="w-6 h-6 text-emerald-600" />;
         case ChatMode.RESEARCH: return <BrainCircuit className="w-6 h-6 text-violet-600" />;
     }
     return <Bot />;
+  };
+
+  const speak = () => {
+    const utterance = new SpeechSynthesisUtterance(message.text);
+    window.speechSynthesis.speak(utterance);
   };
 
   const handleCopy = async () => {
@@ -96,16 +114,46 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                         {message.text}
                     </ReactMarkdown>
 
-                    {/* Copy Button */}
+                    {/* Copy & Speak Buttons */}
                     {!isUser && !message.isThinking && (
-                        <button 
-                            onClick={handleCopy}
-                            className={`absolute top-2 right-2 p-1.5 rounded-lg bg-white/80 hover:bg-white text-slate-500 hover:text-blue-600 shadow-sm border border-slate-100 transition-all duration-200 ${copied ? 'opacity-100' : 'opacity-0 group-hover/bubble:opacity-100'}`}
-                            title="Copy to clipboard"
-                        >
-                            {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
-                        </button>
+                        <div className={`absolute top-2 right-2 flex gap-1 transition-all duration-200 ${copied ? 'opacity-100' : 'opacity-0 group-hover/bubble:opacity-100'}`}>
+                            <button 
+                                onClick={speak}
+                                className="p-1.5 rounded-lg bg-white/80 hover:bg-white text-slate-500 hover:text-blue-600 shadow-sm border border-slate-100"
+                                title="Listen to response"
+                            >
+                                <Volume2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button 
+                                onClick={handleCopy}
+                                className="p-1.5 rounded-lg bg-white/80 hover:bg-white text-slate-500 hover:text-blue-600 shadow-sm border border-slate-100"
+                                title="Copy to clipboard"
+                            >
+                                {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                        </div>
                     )}
+                </div>
+            )}
+
+            {/* Patient Form Action */}
+            {!isUser && message.text?.includes('Patient Information Form') && (
+                <div className="mt-2 bg-blue-50 border border-blue-100 p-4 rounded-xl flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-blue-600 p-2 rounded-lg text-white">
+                            <ClipboardList className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-blue-900">Dr. AI Form Required</p>
+                            <p className="text-xs text-blue-700/70">Help me provide a better diagnosis.</p>
+                        </div>
+                    </div>
+                    <button 
+                      onClick={onFillForm}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase shadow-lg active:scale-95 transition-transform"
+                    >
+                        Fill Form
+                    </button>
                 </div>
             )}
 

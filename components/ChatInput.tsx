@@ -1,6 +1,7 @@
 import React, { useState, KeyboardEvent, useEffect, useRef, ChangeEvent } from 'react';
-import { Send, Sparkles, Mic, MicOff, Clock, Search, Paperclip, X, Image as ImageIcon, Film } from 'lucide-react';
+import { Send, Sparkles, Mic, MicOff, Clock, Search, Paperclip, X, Image as ImageIcon, Film, Layout, Maximize } from 'lucide-react';
 import { ChatMode, Attachment } from '../types';
+import { CARE_CHIPS } from '../constants';
 
 interface ChatInputProps {
   onSendMessage: (text: string, attachments: Attachment[]) => void;
@@ -8,26 +9,16 @@ interface ChatInputProps {
   activeMode: ChatMode;
 }
 
-const CARE_CHIPS = [
-    "General Practitioner",
-    "Cardiologist",
-    "Dermatologist",
-    "Pediatrician",
-    "Dentist",
-    "Urgent Care",
-    "Pharmacy",
-    "Eye Doctor",
-    "Neurologist",
-    "Orthopedist"
-];
-
 const SEARCH_SUFFIXES = [
     "near me",
     "accepting new patients",
-    "for children",
-    "specializing in surgery",
-    "open now"
+    "open 24/7",
+    "emergency services",
+    "bulk billing"
 ];
+
+const ASPECT_RATIOS = ["1:1", "3:2", "4:3", "16:9", "9:16", "21:9"];
+const IMAGE_SIZES = ["1K", "2K", "4K"];
 
 export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, activeMode }) => {
   const [input, setInput] = useState('');
@@ -37,6 +28,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   
+  const [showMediaTools, setShowMediaTools] = useState(false);
+  const [selectedRatio, setSelectedRatio] = useState("1:1");
+  const [selectedSize, setSelectedSize] = useState("1K");
+
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [recognition, setRecognition] = useState<any>(null);
@@ -153,11 +148,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
       if (activeMode === ChatMode.CONSULTATION && duration.trim()) {
           finalMessage += `\n\n[Patient Context - Symptom Duration: ${duration}]`;
       }
+      
+      // Pass metadata if image gen is intended
+      const metadata = showMediaTools ? {
+        aspectRatio: selectedRatio,
+        imageSize: selectedSize
+      } : {};
+      
       onSendMessage(finalMessage, attachments);
       setInput('');
       setDuration('');
       setAttachments([]);
       setShowSuggestions(false);
+      setShowMediaTools(false);
     }
   };
 
@@ -203,18 +206,21 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
         )}
 
         {showSuggestions && (
-            <div className="absolute bottom-[calc(100%-10px)] left-0 w-full px-4 mb-2 pointer-events-none">
-                <div className="max-w-4xl mx-auto pointer-events-auto">
-                    <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-2 flex flex-col gap-1 max-h-48 overflow-y-auto">
-                        <div className="px-3 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wider">Suggestions</div>
+            <div className="absolute bottom-[calc(100%+8px)] left-0 w-full px-4 mb-2 z-50">
+                <div className="max-w-4xl mx-auto">
+                    <div className="bg-white border border-slate-200 rounded-2xl shadow-xl p-2 flex flex-col gap-1 max-h-56 overflow-y-auto animate-in slide-in-from-bottom-2">
+                        <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50 mb-1">Medical Care Suggestions</div>
                         {suggestions.map((s, idx) => (
                             <button
                                 key={idx}
                                 onClick={() => handleSuggestionClick(s)}
-                                className="text-left px-3 py-2 hover:bg-slate-50 rounded-lg text-slate-700 text-sm flex items-center gap-2 group"
+                                className="text-left px-4 py-2.5 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl text-slate-600 text-sm flex items-center justify-between group transition-all"
                             >
-                                <Search className="w-3 h-3 text-slate-400" />
-                                <span>{s}</span>
+                                <div className="flex items-center gap-3">
+                                    <Search className="w-4 h-4 text-slate-300 group-hover:text-emerald-500" />
+                                    <span className="font-medium">{s}</span>
+                                </div>
+                                <Sparkles className="w-3 h-3 text-emerald-300 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </button>
                         ))}
                     </div>
@@ -245,6 +251,59 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
         )}
 
         <div className="flex flex-col gap-3">
+            {showMediaTools && (
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-1 animate-in zoom-in-95 duration-200">
+                    <div className="flex flex-wrap gap-6">
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <Layout className="w-3 h-3" /> Aspect Ratio
+                            </p>
+                            <div className="flex gap-2">
+                                {ASPECT_RATIOS.map(r => (
+                                    <button
+                                        key={r}
+                                        onClick={() => setSelectedRatio(r)}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${selectedRatio === r ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-500 border border-slate-200 hover:border-blue-300'}`}
+                                    >
+                                        {r}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <Maximize className="w-3 h-3" /> Resolution (Imagen)
+                            </p>
+                            <div className="flex gap-2 mb-4">
+                                {IMAGE_SIZES.map(s => (
+                                    <button
+                                        key={s}
+                                        onClick={() => setSelectedSize(s)}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${selectedSize === s ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white text-slate-500 border border-slate-200 hover:border-indigo-300'}`}
+                                    >
+                                        {s}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setInput(prev => `/image ${prev}`)}
+                                    className="px-4 py-2 bg-blue-50 text-blue-700 rounded-xl text-xs font-bold border border-blue-100 hover:bg-blue-100 flex items-center gap-2"
+                                >
+                                    <ImageIcon className="w-4 h-4" /> AI Visualization
+                                </button>
+                                <button
+                                    onClick={() => setInput(prev => `/video ${prev}`)}
+                                    className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-bold border border-indigo-100 hover:bg-indigo-100 flex items-center gap-2"
+                                >
+                                    <Film className="w-4 h-4" /> Veo Simulation
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="flex items-center gap-3">
                 <input 
                     type="file" 
@@ -255,14 +314,24 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
                     onChange={handleFileSelect}
                     disabled={isLoading}
                 />
-                <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isLoading}
-                    className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors shrink-0"
-                    title="Attach image or video"
-                >
-                    <Paperclip className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-1">
+                    <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isLoading}
+                        className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors shrink-0"
+                        title="Attach image or video"
+                    >
+                        <Paperclip className="w-5 h-5" />
+                    </button>
+                    <button 
+                        onClick={() => setShowMediaTools(!showMediaTools)}
+                        disabled={isLoading}
+                        className={`p-3 rounded-xl transition-colors shrink-0 ${showMediaTools ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'}`}
+                        title="AI Image/Video Tools"
+                    >
+                        <ImageIcon className="w-5 h-5" />
+                    </button>
+                </div>
 
                 <div className="relative flex-1 group">
                     <input

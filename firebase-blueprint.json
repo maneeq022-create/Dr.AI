@@ -1,0 +1,77 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Public and private user profile data",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastActive": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "A single message in a conversation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "mode": { "type": "string" },
+        "groundingMetadata": { "type": "object" },
+        "attachments": { "type": "array" },
+        "audio": { "type": "string" }
+      },
+      "required": ["role", "text", "timestamp", "mode"]
+    },
+    "HealthVitals": {
+      "title": "Health Vitals",
+      "description": "Biometric tracking data",
+      "type": "object",
+      "properties": {
+        "bmi": { "type": "number" },
+        "bpSystolic": { "type": "number" },
+        "bpDiastolic": { "type": "number" },
+        "heartRate": { "type": "number" },
+        "temperature": { "type": "number" },
+        "weight": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Medication": {
+      "title": "Medication",
+      "description": "Prescription tracking",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "dosage": { "type": "string" },
+        "frequency": { "type": "string" },
+        "reminders": { "type": "array" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile documents"
+    },
+    "/users/{userId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Individual messages for a user's session"
+    },
+    "/users/{userId}/vitals/{vitalId}": {
+      "schema": "HealthVitals",
+      "description": "Time-series biometric data"
+    },
+    "/users/{userId}/medications/{medId}": {
+      "schema": "Medication",
+      "description": "User medications list"
+    }
+  }
+}
