@@ -2,7 +2,13 @@ import { GoogleGenAI, Type, ThinkingLevel, Modality } from "@google/genai";
 import { ChatMode, UserLocation } from "../types";
 import { SYSTEM_INSTRUCTION_CONSULTATION as BASE_INSTRUCTION, SYSTEM_INSTRUCTION_VET } from "../constants";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+let aiInstance: GoogleGenAI | null = null;
+const getAI = () => {
+  if (!aiInstance) {
+    aiInstance = new GoogleGenAI({ apiKey: process.env.API_KEY || "AQ.Ab8RN6Ih_EHbRWD2l51Y8grVPRE0qKB6b2a2mh66_JwNq_EwSQ" });
+  }
+  return aiInstance;
+};
 
 // CREATOR_INFO
 const CREATOR_INFO = `
@@ -45,7 +51,7 @@ export interface GenAIResponse {
  */
 export const generateTTS = async (text: string): Promise<string | null> => {
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: "gemini-3.1-flash-tts-preview",
       contents: [{ parts: [{ text }] }],
       config: {
@@ -74,7 +80,7 @@ export const generateTTS = async (text: string): Promise<string | null> => {
  */
 export const generateMedicalImaging = async (prompt: string, aspectRatio: string = "1:1", imageSize: string = "1K") => {
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: 'gemini-3-pro-image-preview',
       contents: { parts: [{ text: prompt }] },
       config: {
@@ -101,7 +107,7 @@ export const generateMedicalImaging = async (prompt: string, aspectRatio: string
  */
 export const generateMedicalVideo = async (prompt: string) => {
   try {
-    const operation = await ai.models.generateVideos({
+    const operation = await getAI().models.generateVideos({
       model: 'veo-3.1-fast-generate-preview',
       prompt: prompt,
       config: {
@@ -225,7 +231,7 @@ export const generateResponse = async ({
 
   try {
     if (mode === ChatMode.CONSULTATION) {
-       const chat = ai.chats.create({
+       const chat = getAI().chats.create({
          model: modelName,
          config: { systemInstruction, thinkingConfig },
          history: history.map(h => ({ role: h.role, parts: h.parts }))
@@ -235,7 +241,7 @@ export const generateResponse = async ({
        return { text: result.text, groundingMetadata: undefined };
 
     } else {
-      const result = await ai.models.generateContent({
+      const result = await getAI().models.generateContent({
         model: modelName,
         contents: [
           ...history.map(h => ({ role: h.role, parts: h.parts })),
