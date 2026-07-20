@@ -9,17 +9,18 @@ import { LoginPage } from './components/LoginPage';
 import { generateResponse, generateTTS, generateMedicalImaging, generateMedicalVideo } from './services/geminiService';
 import { auth, db, logout, syncUserProfile } from './services/firebase';
 import { ChatMode, Message, UserLocation, Attachment, AuthUser } from './types';
-import { Activity, Trash2, Download, CheckCircle, Cloud, LogOut, User as UserIcon, ShieldAlert, Heart, Mic, MicOff, Volume2, Moon, Sun, Type, Lock } from 'lucide-react';
+import { Activity, Trash2, Download, CheckCircle, Cloud, LogOut, User as UserIcon, ShieldAlert, Heart, Mic, MicOff, Volume2, Moon, Sun, Type, Lock, FilePlus2, FolderClock } from 'lucide-react';
 import { HealthTrackerSuite } from './components/HealthTrackerSuite';
 import { PatientForm } from './components/PatientForm';
 import { EMERGENCY_KEYWORDS } from './constants';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
 import { PricingModal } from './components/PricingModal';
 import { AdminPanel } from './components/admin/AdminPanel';
 import { PinModal } from './components/admin/PinModal';
 import { MedicalDictionary } from './components/MedicalDictionary';
 import { SymptomChecker } from './components/SymptomChecker';
+import { ExportModal } from './components/ExportModal';
+import { OldChatsModal } from './components/OldChatsModal';
+import { NewChatPromptModal } from './components/NewChatPromptModal';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -48,6 +49,10 @@ const App: React.FC = () => {
   const [showDictionary, setShowDictionary] = useState(false);
   const [showSymptomChecker, setShowSymptomChecker] = useState(false);
   const [appConfig, setAppConfig] = useState<any>(null);
+
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showOldChatsModal, setShowOldChatsModal] = useState(false);
+  const [showNewChatPrompt, setShowNewChatPrompt] = useState(false);
 
   const isAdminEmail = user?.email === 'maneeq022@gmail.com' || user?.email === 'mpervaiz220@gmail.com';
   const isPro = user?.subscriptionStatus === 'premium' || user?.subscriptionStatus === 'trial' || isAdminEmail;
@@ -250,22 +255,46 @@ const App: React.FC = () => {
     await Promise.all(deletePromises);
   };
 
-  const handleSaveLocal = () => {
-    if (!isPro) {
-      setShowPricingModal(true);
-      return;
+  const handleSaveToOldChatsAndClear = async () => {
+    if (!user || messages.length === 0) return;
+    try {
+      const title = messages[0]?.text.substring(0, 40) + "..." || "Consultation";
+      const savedChatRef = collection(db, 'users', user.uid, 'saved_chats');
+      await addDoc(savedChatRef, {
+        title,
+        timestamp: serverTimestamp(),
+        messages: messages
+      });
+      await handleClearHistory();
+      setShowNewChatPrompt(false);
+      setShowSaveToast(true);
+      setTimeout(() => setShowSaveToast(false), 2000);
+    } catch (e) {
+      console.error(e);
     }
-    if (messages.length === 0) return;
-    const chatData = JSON.stringify(messages, null, 2);
-    const blob = new Blob([chatData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `Dr_AI_Chat_Backup_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    localStorage.setItem(`dr_ai_chat_backup_${Date.now()}`, chatData);
-    setShowSaveToast(true);
-    setTimeout(() => setShowSaveToast(false), 2000);
+  };
+
+  const handleClearOnly = async () => {
+    await handleClearHistory();
+    setShowNewChatPrompt(false);
+  };
+
+  const handleViewOldChat = async (oldMessages: Message[]) => {
+    if (!user) return;
+    setIsLoading(true);
+    await handleClearHistory(); // Clear current live chat
+    const messagesRef = collection(db, 'users', user.uid, 'messages');
+    
+    // Upload old messages back to live chat preserving timestamps
+    const promises = oldMessages.map(msg => {
+      const { id, ...msgData } = msg;
+      return addDoc(messagesRef, {
+        ...msgData,
+        timestamp: msgData.timestamp
+      });
+    });
+    await Promise.all(promises);
+    setIsLoading(false);
   };
 
   const handleFormSubmit = async (formData: any) => {
@@ -283,112 +312,7 @@ Please provide a detailed medical analysis based on this information.`;
     await handleSendMessage(prompt);
   };
 
-  const handleDownloadReport = () => {
-    if (appConfig?.features && appConfig.features.pdfExport === false) {
-      alert("PDF Export is currently disabled for maintenance.");
-      return;
-    }
-    if (!isPro) {
-      setShowPricingModal(true);
-      return;
-    }
-    if (messages.length === 0) return;
-    
-    const patientName = user?.name || "Anonymous";
-    const patientAge = "Not Provided (See Intakes)";
-    
-    // @ts-ignore
-    const doc = new jsPDF();
-    const reportId = `DR-AI-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-    const date = new Date().toLocaleString();
 
-    // Header bar
-    doc.setFillColor(37, 99, 235); // Blue-600
-    doc.rect(0, 0, 210, 40, 'F');
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
-    doc.setFont('helvetica', 'bold');
-    doc.text("Dr. AI - Medical Report", 20, 25);
-    
-    doc.setTextColor(51, 65, 85);
-    doc.setFontSize(10);
-    doc.text(`Report ID: ${reportId}`, 150, 50);
-    doc.text(`Generated On: ${date}`, 150, 55);
-
-    doc.setFontSize(14);
-    doc.text("Patient Information", 20, 70);
-    doc.setDrawColor(226, 232, 240);
-    doc.line(20, 72, 190, 72);
-
-    doc.setFontSize(11);
-    doc.setTextColor(100, 116, 139);
-    doc.text(`Name: ${patientName}`, 25, 82);
-    doc.text(`Age: ${patientAge}`, 25, 89);
-    doc.text(`Mode: ${messages[messages.length-1]?.mode || 'N/A'}`, 25, 96);
-
-    let yPos = 125;
-
-    // AI Summary Section
-    const lastAiMsg = [...messages].reverse().find(m => m.role === 'model');
-    if (lastAiMsg) {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.setTextColor(37, 99, 235);
-      doc.text("Recommended Actions & Summary", 20, yPos);
-      doc.line(20, yPos + 2, 190, yPos + 2);
-      yPos += 10;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(30, 41, 59);
-      // Try to extract bullet points or just use the whole text
-      const summaryText = lastAiMsg.text.replace(/\*\*/g, '').replace(/\*/g, '');
-      const splitSummary = doc.splitTextToSize(summaryText, 160);
-      doc.text(splitSummary, 25, yPos);
-      yPos += (splitSummary.length * 6) + 15;
-    }
-
-    if (yPos > 240) {
-      doc.addPage();
-      yPos = 25;
-    }
-
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(51, 65, 85);
-    doc.text("Consultation Transcript", 20, yPos);
-    doc.line(20, yPos + 2, 190, yPos + 2);
-    yPos += 15;
-
-    messages.forEach((msg) => {
-      if (yPos > 260) {
-        doc.addPage();
-        yPos = 25;
-      }
-      
-      const role = msg.role === 'user' ? 'Patient' : 'Dr. AI';
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.setTextColor(71, 85, 105);
-      doc.text(`${role} (${new Date(msg.timestamp).toLocaleTimeString()}):`, 25, yPos);
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(30, 41, 59);
-      const splitText = doc.splitTextToSize(msg.text, 160);
-      doc.text(splitText, 25, yPos + 6);
-      yPos += (splitText.length * 6) + 12;
-    });
-
-    // Disclaimer footer
-    doc.setFontSize(8);
-    doc.setTextColor(180, 180, 180);
-    const disclaimerHeight = doc.internal.pageSize.height - 15;
-    doc.text("DISCLAIMER: This report is generated by AI for informational purposes only. Consultation with a doctor is necessary.", 20, disclaimerHeight);
-    
-    doc.save(`Medical_Report_${patientName.replace(/\s+/g, '_')}.pdf`);
-    setShowSaveToast(true);
-    setTimeout(() => setShowSaveToast(false), 2000);
-  };
 
   const handleSendMessage = async (text: string, attachments: Attachment[] = []) => {
     if (!user) return;
@@ -536,6 +460,10 @@ Please provide a detailed medical analysis based on this information.`;
           handleSendMessage(`I used the Symptom Checker. I have the following symptoms: ${symptoms.join(', ')}. I rate my overall severity as ${severity}/10. Can you give me a preliminary triage assessment?`);
         }} />}
 
+        {showExportModal && <ExportModal onClose={() => setShowExportModal(false)} messages={messages} user={user} />}
+        {showOldChatsModal && <OldChatsModal onClose={() => setShowOldChatsModal(false)} user={user} onSelectChat={handleViewOldChat} />}
+        {showNewChatPrompt && <NewChatPromptModal onClose={() => setShowNewChatPrompt(false)} onSaveAndClear={handleSaveToOldChatsAndClear} onClearOnly={handleClearOnly} />}
+
         {showDashboard && <HealthTrackerSuite onClose={() => setShowDashboard(false)} />}
         {showPatientForm && <PatientForm onClose={() => setShowPatientForm(false)} onSubmit={handleFormSubmit} />}
 
@@ -641,38 +569,57 @@ Please provide a detailed medical analysis based on this information.`;
 
             <div className="flex items-center gap-2 border-r border-slate-200 dark:border-slate-700 pr-2 mr-2">
               <button 
-                onClick={toggleListening}
-                className={`relative p-2 transition-colors ${isListening ? 'text-red-500 animate-pulse' : 'text-slate-400 hover:text-blue-600 dark:hover:text-blue-400'}`}
-                title="Voice Dictation"
+                onClick={() => {
+                  if (!isPro) {
+                    setShowPricingModal(true);
+                    return;
+                  }
+                  setShowOldChatsModal(true);
+                }}
+                className="relative p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-2"
+                title="View Old Chats"
               >
-                {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                {!isPro && <Lock className="w-3 h-3 absolute -top-1 -right-1 text-slate-400" />}
-              </button>
-              
-              <button 
-                onClick={handleSaveLocal}
-                className="relative p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-2"
-                title="Save Chat to Local Storage"
-              >
-                <Cloud className="w-5 h-5" />
-                <span className="hidden lg:inline text-[10px] font-bold uppercase tracking-wider">Save Chat</span>
+                <FolderClock className="w-5 h-5" />
+                <span className="hidden lg:inline text-[10px] font-bold uppercase tracking-wider">Old Chats</span>
                 {!isPro && <Lock className="w-3 h-3 absolute -top-1 -right-1 text-slate-400" />}
               </button>
 
               <button 
-                onClick={handleDownloadReport} 
-                className="relative p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-2 transition-colors"
-                title="Download PDF Medical Report"
+                onClick={() => {
+                  if (messages.length > 0) {
+                    setShowNewChatPrompt(true);
+                  }
+                }}
+                className={`relative p-2 transition-colors flex items-center gap-2 ${messages.length === 0 ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'text-slate-400 hover:text-blue-600 dark:hover:text-blue-400'}`}
+                title="Start New Chat"
+                disabled={messages.length === 0}
+              >
+                <FilePlus2 className="w-5 h-5" />
+                <span className="hidden lg:inline text-[10px] font-bold uppercase tracking-wider">New Chat</span>
+              </button>
+
+              <button 
+                onClick={() => {
+                  if (!isPro) {
+                    setShowPricingModal(true);
+                    return;
+                  }
+                  if (messages.length > 0) setShowExportModal(true);
+                }} 
+                className={`relative p-2 flex items-center gap-2 transition-colors ${messages.length === 0 ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'text-slate-400 hover:text-blue-600 dark:hover:text-blue-400'}`}
+                title="Save & Export Chat Report"
+                disabled={messages.length === 0}
               >
                 <Download className="w-5 h-5" />
-                <span className="hidden md:inline text-[10px] font-bold uppercase tracking-wider">PDF Report</span>
+                <span className="hidden md:inline text-[10px] font-bold uppercase tracking-wider">Save/Export</span>
                 {!isPro && <Lock className="w-3 h-3 absolute -top-1 -right-1 text-slate-400" />}
               </button>
 
               <button 
                 onClick={handleClearHistory} 
-                className="p-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
-                title="Clear History"
+                className={`p-2 transition-colors ${messages.length === 0 ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'text-slate-400 hover:text-red-500 dark:hover:text-red-400'}`}
+                title="Clear Current Screen"
+                disabled={messages.length === 0}
               >
                 <Trash2 className="w-5 h-5" />
               </button>

@@ -69,6 +69,13 @@ export interface GroundingMetadata {
   }[];
 }
 
+export interface SavedChat {
+  id: string;
+  title: string;
+  timestamp: Date;
+  messages: Message[];
+}
+
 export interface UserLocation {
   latitude: number;
   longitude: number;

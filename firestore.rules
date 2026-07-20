@@ -104,6 +104,14 @@ service cloud.firestore {
         allow update: if false; // Immutable messages
         allow delete: if isOwner(userId) || isAdmin();
       }
+
+      // Saved Chats Subcollection
+      match /saved_chats/{chatId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId);
+        allow delete: if isOwner(userId) || isAdmin();
+        allow update: if isOwner(userId) || isAdmin();
+      }
     }
   }
 }
