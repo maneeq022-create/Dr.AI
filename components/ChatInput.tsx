@@ -175,7 +175,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      handleSend();
+    } else if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -183,10 +186,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
 
   const getPlaceholder = () => {
       switch (activeMode) {
-          case ChatMode.CONSULTATION: return "Describe your symptoms...";
-          case ChatMode.FIND_CARE: return "Type specialist name...";
-          case ChatMode.RESEARCH: return "Search medical topics...";
-          default: return "Type your message...";
+          case ChatMode.CONSULTATION: return "Describe your symptoms... (Ctrl+Enter to send)";
+          case ChatMode.FIND_CARE: return "Type specialist name... (Ctrl+Enter to send)";
+          case ChatMode.RESEARCH: return "Search medical topics... (Ctrl+Enter to send)";
+          default: return "Type your message... (Ctrl+Enter to send)";
       }
   };
 

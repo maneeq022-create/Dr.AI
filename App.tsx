@@ -233,6 +233,20 @@ const App: React.FC = () => {
     localStorage.setItem('textSize', textSize);
   }, [textSize]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        if (messages.length > 0) {
+          setShowNewChatPrompt(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [messages.length]);
+
   const handleLogin = (userData: AuthUser) => {
     setUser(userData);
   };

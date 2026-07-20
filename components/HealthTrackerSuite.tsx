@@ -9,13 +9,14 @@ import {
   Tooltip, ResponsiveContainer, BarChart, Bar, Cell 
 } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
+import { DailyHealthQuiz } from './DailyHealthQuiz';
 
 interface HealthTrackerSuiteProps {
   onClose: () => void;
 }
 
 export const HealthTrackerSuite: React.FC<HealthTrackerSuiteProps> = ({ onClose }) => {
-  const [activeTab, setActiveTab] = useState<'vitals' | 'meds' | 'logs' | 'profile'>('vitals');
+  const [activeTab, setActiveTab] = useState<'vitals' | 'meds' | 'logs' | 'profile' | 'quiz'>('vitals');
   const [remindersEnabled, setRemindersEnabled] = useState(false);
 
   const requestNotificationPermission = async () => {
@@ -93,12 +94,12 @@ export const HealthTrackerSuite: React.FC<HealthTrackerSuiteProps> = ({ onClose 
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-slate-100 dark:border-slate-800 px-6">
-          {(['vitals', 'meds', 'logs', 'profile'] as const).map((tab) => (
+        <div className="flex border-b border-slate-100 dark:border-slate-800 px-6 overflow-x-auto">
+          {(['vitals', 'meds', 'logs', 'profile', 'quiz'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`py-4 px-4 text-sm font-bold uppercase tracking-widest relative transition-colors ${
+              className={`py-4 px-4 text-sm font-bold uppercase tracking-widest relative transition-colors whitespace-nowrap ${
                 activeTab === tab ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
               }`}
             >
@@ -290,6 +291,12 @@ export const HealthTrackerSuite: React.FC<HealthTrackerSuiteProps> = ({ onClose 
                  <button className="w-full p-4 bg-slate-900 text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-all">
                    <History className="w-4 h-4" /> Export Health History
                  </button>
+               </motion.div>
+            )}
+
+            {activeTab === 'quiz' && (
+               <motion.div key="quiz" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="h-full">
+                 <DailyHealthQuiz />
                </motion.div>
             )}
           </AnimatePresence>
