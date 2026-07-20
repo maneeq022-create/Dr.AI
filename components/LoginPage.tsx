@@ -26,8 +26,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       console.error(err);
       if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cross-origin-opener-policy-failed') {
         setError("Login popup was blocked or closed. If you are in a preview iframe, please open the app in a new tab.");
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError(`This domain (${window.location.hostname}) is not authorized for OAuth. Please add it to "Authorized domains" in Firebase Console -> Authentication -> Settings.`);
       } else {
-        setError("Failed to sign in with Google. Please try again or open in a new tab.");
+        setError(err.message || "Failed to sign in with Google. Please try again or open in a new tab.");
       }
     } finally {
       setIsLoading(false);
