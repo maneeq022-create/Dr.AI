@@ -23,11 +23,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         });
       }
     } catch (err: any) {
-      if (err.code !== 'auth/popup-closed-by-user') {
-        console.error(err);
-      }
+      console.error(err);
       if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cross-origin-opener-policy-failed') {
-        setError("Login was cancelled or blocked. If you are in a preview iframe, please open the app in a new tab.");
+        setError("Login popup was blocked or closed. If you are in a preview iframe, please open the app in a new tab.");
       } else {
         setError("Failed to sign in with Google. Please try again or open in a new tab.");
       }

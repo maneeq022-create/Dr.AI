@@ -1,13 +1,11 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, orderBy, onSnapshot, serverTimestamp, getDocFromServer, addDoc, setLogLevel } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, orderBy, onSnapshot, serverTimestamp, getDocFromServer, addDoc } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-
-setLogLevel('error'); // Suppress warnings about offline mode when the connection is slow
 
 const googleProvider = new GoogleAuthProvider();
 
@@ -15,10 +13,8 @@ export const loginWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
-  } catch (error: any) {
-    if (error.code !== 'auth/popup-closed-by-user') {
-      console.error("Login error:", error);
-    }
+  } catch (error) {
+    console.error("Login error:", error);
     throw error;
   }
 };
