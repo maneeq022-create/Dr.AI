@@ -10,6 +10,51 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
+    
+    function isAdmin() {
+       return isSignedIn() && 
+              request.auth.token != null &&
+              'email' in request.auth.token && 
+              (request.auth.token.email == 'maneeq022@gmail.com' || request.auth.token.email == 'mpervaiz220@gmail.com');
+    }
+    
+    match /admins/{email} {
+      allow read, write: if isAdmin();
+    }
+    
+    match /config/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /announcements/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /supportTickets/{doc} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /adminLogs/{doc} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /patients/{doc} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /transactions/{doc} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.userId);
+      allow write: if isSignedIn();
+    }
+
+    match /safepayTransactions/{doc} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.userId);
+      allow write: if isSignedIn();
+    }
 
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
@@ -46,16 +91,18 @@ service cloud.firestore {
 
     // Master Gates
     match /users/{userId} {
-      allow get: if isOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
       allow create: if isOwner(userId) && isEmailVerified();
-      allow update: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
       
       // Messages Subcollection
       match /messages/{messageId} {
-        allow read: if isOwner(userId);
+        allow read: if isOwner(userId) || isAdmin();
         allow create: if isOwner(userId);
         allow update: if false; // Immutable messages
-        allow delete: if isOwner(userId);
+        allow delete: if isOwner(userId) || isAdmin();
       }
     }
   }

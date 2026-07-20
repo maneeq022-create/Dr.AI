@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Activity, Droplets, Moon, Pill, AlertTriangle, 
   ChevronRight, Calculator, Calendar, History,
-  TrendingUp, MapPin, Plus, Trash2, Heart
+  TrendingUp, MapPin, Plus, Trash2, Heart, Bell
 } from 'lucide-react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, 
@@ -16,7 +16,38 @@ interface HealthTrackerSuiteProps {
 
 export const HealthTrackerSuite: React.FC<HealthTrackerSuiteProps> = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState<'vitals' | 'meds' | 'logs' | 'profile'>('vitals');
-  
+  const [remindersEnabled, setRemindersEnabled] = useState(false);
+
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+      alert("This browser does not support desktop notification");
+      return;
+    }
+    if (Notification.permission === "granted") {
+      setRemindersEnabled(true);
+      alert("Notifications are already enabled.");
+    } else if (Notification.permission !== "denied") {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        setRemindersEnabled(true);
+      }
+    }
+  };
+
+  const scheduleReminder = (medName: string) => {
+    if (Notification.permission === "granted") {
+      alert(`Reminder scheduled for ${medName}. (Simulated: A notification will appear in 5 seconds)`);
+      setTimeout(() => {
+        new Notification("Medication Reminder", {
+          body: `It's time to take your ${medName}.`,
+          icon: '/favicon.ico'
+        });
+      }, 5000);
+    } else {
+      requestNotificationPermission();
+    }
+  };
+
   // Mock data for visualizations
   const bpData = [
     { day: 'Mon', sys: 120, dia: 80 },
@@ -184,9 +215,12 @@ export const HealthTrackerSuite: React.FC<HealthTrackerSuiteProps> = ({ onClose 
                         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{med.dosage} • {med.freq}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-bold text-blue-600 uppercase mb-1">{med.time}</p>
-                      <button className="p-1.5 text-slate-300 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                    <div className="text-right flex flex-col items-end gap-1">
+                      <p className="text-[10px] font-bold text-blue-600 uppercase">{med.time}</p>
+                      <div className="flex gap-2">
+                        <button onClick={() => scheduleReminder(med.name)} className="p-1.5 text-slate-300 hover:text-blue-500 transition-colors" title="Set Reminder"><Bell className="w-4 h-4" /></button>
+                        <button className="p-1.5 text-slate-300 hover:text-red-500 transition-colors" title="Remove"><Trash2 className="w-4 h-4" /></button>
+                      </div>
                     </div>
                   </div>
                 ))}

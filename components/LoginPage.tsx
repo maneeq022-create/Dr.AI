@@ -22,9 +22,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           photo: user.photoURL || undefined
         });
       }
-    } catch (err) {
-      console.error(err);
-      setError("Failed to sign in with Google. Please try again.");
+    } catch (err: any) {
+      if (err.code !== 'auth/popup-closed-by-user') {
+        console.error(err);
+      }
+      if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cross-origin-opener-policy-failed') {
+        setError("Login was cancelled or blocked. If you are in a preview iframe, please open the app in a new tab.");
+      } else {
+        setError("Failed to sign in with Google. Please try again or open in a new tab.");
+      }
     } finally {
       setIsLoading(false);
     }

@@ -1,11 +1,13 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, orderBy, onSnapshot, serverTimestamp, getDocFromServer, addDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, orderBy, onSnapshot, serverTimestamp, getDocFromServer, addDoc, setLogLevel } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
+setLogLevel('error'); // Suppress warnings about offline mode when the connection is slow
 
 const googleProvider = new GoogleAuthProvider();
 
@@ -13,8 +15,10 @@ export const loginWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
-  } catch (error) {
-    console.error("Login error:", error);
+  } catch (error: any) {
+    if (error.code !== 'auth/popup-closed-by-user') {
+      console.error("Login error:", error);
+    }
     throw error;
   }
 };
@@ -54,6 +58,35 @@ export const syncUserProfile = async (user: FirebaseUser) => {
       lastActive: serverTimestamp()
     });
   }
+};
+
+export const checkIsAdmin = async (email: string): Promise<boolean> => {
+  if (!email) return false;
+  
+  // Hardcoded initial admins
+  const defaultAdmins = ['maneeq022@gmail.com', 'mpervaiz220@gmail.com'];
+  
+  if (defaultAdmins.includes(email)) {
+     const adminRef = doc(db, 'admins', email);
+     const docSnap = await getDoc(adminRef);
+     if (!docSnap.exists()) {
+        await setDoc(adminRef, { email, role: 'superadmin', addedAt: serverTimestamp() });
+     }
+     return true;
+  }
+  
+  const adminDoc = await getDoc(doc(db, 'admins', email));
+  return adminDoc.exists();
+};
+
+export const logAdminAction = async (adminEmail: string, action: string, targetUserId: string, details: any = {}) => {
+  await addDoc(collection(db, 'adminLogs'), {
+    adminEmail,
+    action,
+    targetUserId,
+    details,
+    timestamp: serverTimestamp()
+  });
 };
 
 export const upgradeSubscription = async (userId: string, plan: 'monthly' | 'yearly' | 'trial') => {

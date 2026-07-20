@@ -6,10 +6,11 @@ import { MessageBubble } from './components/MessageBubble';
 import { ModeSelector } from './components/ModeSelector';
 import { DisclaimerModal } from './components/DisclaimerModal';
 import { LoginPage } from './components/LoginPage';
+import { ChatSidebar } from './components/ChatSidebar';
 import { generateResponse, generateTTS, generateMedicalImaging, generateMedicalVideo } from './services/geminiService';
 import { auth, db, logout, syncUserProfile } from './services/firebase';
 import { ChatMode, Message, UserLocation, Attachment, AuthUser } from './types';
-import { Activity, Trash2, Download, CheckCircle, Cloud, LogOut, User as UserIcon, ShieldAlert, Heart, Mic, MicOff, Volume2, Moon, Sun, Type, Lock } from 'lucide-react';
+import { Activity, Trash2, Download, CheckCircle, Cloud, LogOut, User as UserIcon, ShieldAlert, Heart, Mic, MicOff, Volume2, Moon, Sun, Type, Lock, Menu } from 'lucide-react';
 import { HealthTrackerSuite } from './components/HealthTrackerSuite';
 import { PatientForm } from './components/PatientForm';
 import { EMERGENCY_KEYWORDS } from './constants';
@@ -22,6 +23,7 @@ import { MedicalDictionary } from './components/MedicalDictionary';
 import { SymptomChecker } from './components/SymptomChecker';
 
 const App: React.FC = () => {
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -48,9 +50,12 @@ const App: React.FC = () => {
   const [showDictionary, setShowDictionary] = useState(false);
   const [showSymptomChecker, setShowSymptomChecker] = useState(false);
   const [appConfig, setAppConfig] = useState<any>(null);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const isAdminEmail = user?.email === 'maneeq022@gmail.com' || user?.email === 'mpervaiz220@gmail.com';
-  const isPro = user?.subscriptionStatus === 'premium' || user?.subscriptionStatus === 'trial' || isAdminEmail;
+  // Allow all premium features for now
+  const isPro = true;
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -148,11 +153,11 @@ const App: React.FC = () => {
                     subscriptionStatus: data.subscriptionStatus || 'free',
                     trialEndsAt: data.trialEndsAt ? data.trialEndsAt.toDate() : null
                 });
-                
+                setIsAuthLoading(false);
             }
         }, (error) => {
             console.error("userDocRef snapshot error:", error);
-            
+            setIsAuthLoading(false);
         });
       } else {
         if (unsubscribeUserDoc) {
@@ -161,7 +166,7 @@ const App: React.FC = () => {
         }
         setUser(null);
         setMessages([]);
-        
+        setIsAuthLoading(false);
       }
     });
 
@@ -178,8 +183,12 @@ const App: React.FC = () => {
       return;
     }
 
+    if (!currentChatId) {
+      setMessages([]);
+      return;
+    }
 
-    const messagesRef = collection(db, 'users', user.uid, 'messages');
+    const messagesRef = collection(db, 'users', user.uid, 'chats', currentChatId, 'messages');
     const q = query(messagesRef, orderBy('timestamp', 'asc'));
 
     const unsubscribeSnap = onSnapshot(q, (snapshot) => {
@@ -200,7 +209,7 @@ const App: React.FC = () => {
     });
 
     return () => unsubscribeSnap();
-  }, [user]);
+  }, [user, currentChatId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -243,10 +252,10 @@ const App: React.FC = () => {
   };
 
   const handleClearHistory = async () => {
-    if (!user || messages.length === 0) return;
-    const messagesRef = collection(db, 'users', user.uid, 'messages');
+    if (!user || messages.length === 0 || !currentChatId) return;
+    const messagesRef = collection(db, 'users', user.uid, 'chats', currentChatId, 'messages');
     const snapshot = await getDocs(messagesRef);
-    const deletePromises = snapshot.docs.map(d => deleteDoc(doc(db, 'users', user.uid, 'messages', d.id)));
+    const deletePromises = snapshot.docs.map(d => deleteDoc(doc(db, 'users', user.uid, 'chats', currentChatId, 'messages', d.id)));
     await Promise.all(deletePromises);
   };
 
@@ -399,6 +408,23 @@ Please provide a detailed medical analysis based on this information.`;
       return;
     }
 
+    let targetChatId = currentChatId;
+
+    if (!targetChatId) {
+      const chatRef = doc(collection(db, 'users', user.uid, 'chats'));
+      targetChatId = chatRef.id;
+      const title = text.slice(0, 30) + (text.length > 30 ? '...' : '');
+      await setDoc(chatRef, {
+        title,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      setCurrentChatId(targetChatId);
+    } else {
+      await setDoc(doc(db, 'users', user.uid, 'chats', targetChatId), {
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    }
 
     let finalPrompt = text;
     if (isEli5) {
@@ -416,7 +442,7 @@ Please provide a detailed medical analysis based on this information.`;
     setIsLoading(true);
 
     try {
-      const messagesRef = collection(db, 'users', user.uid, 'messages');
+      const messagesRef = collection(db, 'users', user.uid, 'chats', targetChatId, 'messages');
       await addDoc(messagesRef, userMsgData);
       
       const historyPayload = messages.map(m => ({
@@ -505,6 +531,13 @@ Please provide a detailed medical analysis based on this information.`;
     }
   };
 
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-slate-700 border-t-blue-600 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   if (!user) {
     return <LoginPage onLogin={handleLogin} />;
@@ -520,8 +553,18 @@ Please provide a detailed medical analysis based on this information.`;
   }
 
   return (
-    <div className={`flex flex-col h-full bg-slate-50 dark:bg-slate-900 relative transition-colors duration-300 ${textSize === 'sm' ? 'text-sm' : textSize === 'lg' ? 'text-lg' : 'text-base'}`}>
-      {!hasAcceptedDisclaimer && <DisclaimerModal onAccept={() => setHasAcceptedDisclaimer(true)} />}
+    <div className="flex h-full bg-slate-50 dark:bg-slate-900 overflow-hidden">
+      <ChatSidebar 
+        user={user} 
+        currentChatId={currentChatId} 
+        onSelectChat={setCurrentChatId} 
+        onNewChat={() => setCurrentChatId(null)}
+        isOpen={isSidebarOpen}
+        setIsOpen={setIsSidebarOpen}
+      />
+      
+      <div className={`flex flex-col flex-1 min-w-0 relative transition-colors duration-300 ${textSize === 'sm' ? 'text-sm' : textSize === 'lg' ? 'text-lg' : 'text-base'}`}>
+        {!hasAcceptedDisclaimer && <DisclaimerModal onAccept={() => setHasAcceptedDisclaimer(true)} />}
         
         {showPricingModal && user && <PricingModal onClose={() => setShowPricingModal(false)} userId={user.uid} />}
         
@@ -559,6 +602,9 @@ Please provide a detailed medical analysis based on this information.`;
 
         <header className="bg-white dark:bg-slate-800 px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between shadow-sm z-20 transition-colors duration-300">
           <div className="flex items-center gap-3">
+            <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
+              <Menu className="w-6 h-6" />
+            </button>
             <div className="bg-blue-600 p-2 rounded-lg text-white"><Activity className="w-6 h-6" /></div>
           <div>
             <h1 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">Dr. AI</h1>
@@ -736,6 +782,7 @@ Please provide a detailed medical analysis based on this information.`;
               <MessageBubble 
                 key={msg.id} 
                 message={msg} 
+                onSpeak={() => speak(msg.text)}
                 onFillForm={() => setShowPatientForm(true)}
               />
             ))
@@ -751,6 +798,7 @@ Please provide a detailed medical analysis based on this information.`;
         isPro={isPro}
         onRequirePro={() => setShowPricingModal(true)}
       />
+    </div>
     </div>
   );
 };
