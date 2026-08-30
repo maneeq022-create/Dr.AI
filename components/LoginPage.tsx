@@ -24,8 +24,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       }
     } catch (err: any) {
       console.error(err);
-      if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cross-origin-opener-policy-failed') {
-        setError("Login popup was blocked or closed. If you are in a preview iframe, please open the app in a new tab.");
+      if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cross-origin-opener-policy-failed' || err.code === 'auth/popup-blocked') {
+        setError("Login popup was blocked by your browser. Please allow popups for this site (check the address bar icon) and try again.");
       } else if (err.code === 'auth/unauthorized-domain') {
         setError(`This domain (${window.location.hostname}) is not authorized for OAuth. Please add it to "Authorized domains" in Firebase Console -> Authentication -> Settings.`);
       } else {
